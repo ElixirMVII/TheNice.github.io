@@ -180,10 +180,10 @@ html.fx-intro-running body {
   border: 1.5px solid var(--fx-blue);
 }
 
-.fx-handle:nth-child(1) { top: -4px; left: -4px; }
-.fx-handle:nth-child(2) { top: -4px; right: -4px; }
-.fx-handle:nth-child(3) { bottom: -4px; left: -4px; }
-.fx-handle:nth-child(4) { bottom: -4px; right: -4px; }
+.fx-handle--tl { top: -4px; left: -4px; }
+.fx-handle--tr { top: -4px; right: -4px; }
+.fx-handle--bl { bottom: -4px; left: -4px; }
+.fx-handle--br { bottom: -4px; right: -4px; }
 
 .fx-size {
   position: absolute;
@@ -222,7 +222,7 @@ html.fx-intro-running body {
 }
 
 /* --------------------------------------------------------------------------
-   Cursors (used in intro + following the visitor's mouse)
+   Cursors (intro + collaborator cursors for each tool)
    -------------------------------------------------------------------------- */
 .fx-cursor {
   position: absolute;
@@ -295,37 +295,66 @@ html.fx-intro-running body {
 }
 
 /* --------------------------------------------------------------------------
-   Scroll reveals (each element plays once)
+   Scroll reveals (each section plays its own Figma tool, once)
    -------------------------------------------------------------------------- */
+:root {
+  --fx-pink: #ff3d9a;   /* Figma spacing / measurement colour */
+  --fx-purple: #9747ff; /* Figma component colour */
+}
+
 .fx-ready .fx-pending {
   opacity: 0;
 }
 
-/* rise: text blocks, stats, contact */
+/* Quiet fallbacks: rise, and media (rise + image wipe) */
 .fx-ready .fx-in-rise,
 .fx-ready .fx-in-media {
   animation: fxUp 0.7s var(--fx-ease) both;
   animation-delay: var(--fx-delay, 0ms);
 }
 
-/* media: the image inside wipes up and settles */
 .fx-ready .fx-in-media img {
   animation: fxImgReveal 1s var(--fx-ease) both;
   animation-delay: calc(var(--fx-delay, 0ms) + 120ms);
 }
 
-/* heading: curtain over the block (incl. the red bar), lines rise in turn */
-.fx-ready .fx-in-heading {
-  animation: fxCurtain 0.8s var(--fx-ease) both;
-  animation-delay: var(--fx-delay, 0ms);
+/* Generic pop + "slide out of the first item" (auto layout / duplicates) */
+.fx-ready .fx-pop-in {
+  animation: fxPopIn 0.55s var(--fx-ease) both;
+  animation-delay: var(--fx-d, 0ms);
 }
 
-.fx-ready .fx-in-heading > * {
-  animation: fxUp 0.7s var(--fx-ease) both;
-  animation-delay: calc(var(--fx-delay, 0ms) + 120ms + var(--fx-i, 0) * 90ms);
+.fx-ready .fx-flip-in {
+  animation: fxFlip 0.75s var(--fx-ease) both;
+  animation-delay: var(--fx-d, 0ms);
 }
 
-/* build: Skills panels wipe in behind their wireframe */
+/* Text tool: eyebrow + paragraph rise, the heading is typed */
+.fx-ready .fx-in-text > * {
+  animation: fxUp 0.6s var(--fx-ease) both;
+  animation-delay: calc(var(--fx-i, 0) * 80ms);
+}
+
+.fx-ready .fx-in-text > h2 ~ * {
+  animation-delay: calc(var(--fx-type, 600ms) * 0.7 + var(--fx-i, 0) * 80ms);
+}
+
+.fx-ready .fx-in-text > h2.fx-typing {
+  animation: fxType var(--fx-type, 600ms) steps(var(--fx-n, 12), end) both 0.15s;
+}
+
+.fx-textbox {
+  border: 1.5px solid var(--fx-blue);
+}
+
+.fx-caret {
+  background: var(--fx-blue);
+  animation:
+    fxCaretMove var(--fx-type, 600ms) steps(var(--fx-n, 12), end) 0.15s both,
+    fxBlink 0.5s step-end calc(var(--fx-type, 600ms) + 0.15s) infinite;
+}
+
+/* Frame build (Skills) */
 .fx-ready .fx-in-build {
   animation: fxWipeIn 0.7s var(--fx-ease) both;
 }
@@ -334,8 +363,27 @@ html.fx-intro-running body {
   animation: fxPop 0.6s var(--fx-ease) both 0.25s;
 }
 
+/* Image placement (photos): circle grows from where the cursor clicked */
+.fx-ready .fx-in-place {
+  animation: fxCircle 0.75s var(--fx-ease) both;
+}
+
+.fx-ready .fx-in-place img {
+  animation: fxSettle 1s var(--fx-ease) both;
+}
+
 @keyframes fxUp {
   from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes fxPopIn {
+  from { opacity: 0; transform: scale(0.86); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes fxFlip {
+  from { opacity: 0.35; transform: translate(var(--fx-dx, 0), var(--fx-dy, 0)) scale(0.96); }
   to   { opacity: 1; transform: none; }
 }
 
@@ -344,9 +392,18 @@ html.fx-intro-running body {
   to   { clip-path: inset(0 0 0 0); transform: none; }
 }
 
-@keyframes fxCurtain {
-  from { clip-path: inset(0 0 100% 0); }
-  to   { clip-path: inset(0 0 0 0); }
+@keyframes fxType {
+  from { clip-path: inset(-0.5em var(--fx-cfrom, 100%) -0.5em -0.3em); }
+  to   { clip-path: inset(-0.5em var(--fx-cto, 0) -0.5em -0.3em); }
+}
+
+@keyframes fxCaretMove {
+  from { transform: none; }
+  to   { transform: translateX(var(--fx-tw, 0)); }
+}
+
+@keyframes fxBlink {
+  50% { opacity: 0; }
 }
 
 @keyframes fxWipeIn {
@@ -360,7 +417,19 @@ html.fx-intro-running body {
   100% { transform: none; }
 }
 
-/* Wireframe frames for the Skills build (document coordinates) */
+@keyframes fxCircle {
+  from { clip-path: circle(0 at var(--fx-px, 50%) var(--fx-py, 50%)); }
+  to   { clip-path: circle(150% at var(--fx-px, 50%) var(--fx-py, 50%)); }
+}
+
+@keyframes fxSettle {
+  from { transform: scale(1.15); }
+  to   { transform: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Overlays drawn on top of the page (document coordinates)
+   -------------------------------------------------------------------------- */
 .fx-frames {
   position: absolute;
   top: 0;
@@ -371,20 +440,26 @@ html.fx-intro-running body {
   pointer-events: none;
 }
 
-.fx-bframe {
+.fx-ov {
   position: absolute;
-  border: 1.5px solid var(--fx-blue);
   font-family: "Prompt", system-ui, sans-serif;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.fx-ov.is-gone {
+  opacity: 0;
+}
+
+/* Frame build */
+.fx-bframe {
+  border: 1.5px solid var(--fx-blue);
   clip-path: inset(0 100% 100% 0);
   transition: clip-path 0.4s var(--fx-ease), opacity 0.4s ease;
 }
 
 .fx-bframe.is-drawn {
   clip-path: inset(-24px -80px -30px -10px);
-}
-
-.fx-bframe.is-gone {
-  opacity: 0;
 }
 
 .fx-bframe__fill {
@@ -404,12 +479,100 @@ html.fx-intro-running body {
   opacity: 0;
 }
 
-.fx-bframe .fx-layer-name {
+.fx-ov .fx-layer-name {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Marquee selection */
+.fx-marquee {
+  border: 1px solid var(--fx-blue);
+  background: rgba(47, 140, 255, 0.12);
+}
+
+.fx-select-box {
+  border: 1.5px solid var(--fx-blue);
+}
+
+.fx-group-box {
+  border: 1.5px solid var(--fx-blue);
+}
+
+/* Auto layout + spacing markers */
+.fx-autolayout {
+  border: 1.5px dashed var(--fx-blue);
+}
+
+.fx-gap::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px solid var(--fx-pink);
+}
+
+.fx-gap::after {
+  content: "";
+  position: absolute;
+  top: calc(50% - 5px);
+  left: 0;
+  right: 0;
+  height: 10px;
+  border-left: 1px solid var(--fx-pink);
+  border-right: 1px solid var(--fx-pink);
+}
+
+.fx-gap__label {
+  position: absolute;
+  top: calc(50% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--fx-pink);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+/* Image placeholder + crop frame */
+.fx-placeholder {
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.07), transparent 60%),
+    #2b313b;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.fx-placeholder svg {
+  width: 28px;
+  height: 28px;
+}
+
+.fx-crop {
+  border: 1.5px solid var(--fx-blue);
+}
+
+/* Components */
+.fx-component {
+  border: 1.5px solid var(--fx-purple);
+}
+
+.fx-component.is-instance {
+  border-style: dashed;
+}
+
+.fx-component .fx-layer-name {
+  color: var(--fx-purple);
+}
+
+/* Collaborator cursors */
 .fx-cursor-layer {
   position: fixed;
   inset: 0;
