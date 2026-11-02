@@ -295,61 +295,72 @@ html.fx-intro-running body {
 }
 
 /* --------------------------------------------------------------------------
-   Hero hand-off to the scroll builder
+   Scroll reveals (each element plays once)
    -------------------------------------------------------------------------- */
-.fx-hero-done .intro-copy > *,
-.fx-hero-done .portrait-frame,
-.fx-hero-done .fx-split-char {
-  opacity: 1;
-  animation: none;
+.fx-ready .fx-pending {
+  opacity: 0;
 }
 
-/* --------------------------------------------------------------------------
-   Scroll build: hidden -> wireframe -> content wipes in -> dismantle on exit
-   -------------------------------------------------------------------------- */
-.fx-ready .fx-hidden {
-  clip-path: inset(0 100% 0 0);
+/* rise: text blocks, stats, contact */
+.fx-ready .fx-in-rise,
+.fx-ready .fx-in-media {
+  animation: fxUp 0.7s var(--fx-ease) both;
+  animation-delay: var(--fx-delay, 0ms);
 }
 
-.fx-ready .fx-building {
-  animation: fxBuildIn 0.75s var(--fx-ease) both;
+/* media: the image inside wipes up and settles */
+.fx-ready .fx-in-media img {
+  animation: fxImgReveal 1s var(--fx-ease) both;
+  animation-delay: calc(var(--fx-delay, 0ms) + 120ms);
 }
 
-.fx-ready .fx-building img {
-  animation: fxImgIn 1.1s var(--fx-ease) both;
+/* heading: curtain over the block (incl. the red bar), lines rise in turn */
+.fx-ready .fx-in-heading {
+  animation: fxCurtain 0.8s var(--fx-ease) both;
+  animation-delay: var(--fx-delay, 0ms);
 }
 
-.fx-ready .fx-building .skill-logo,
-.fx-ready .fx-building i {
+.fx-ready .fx-in-heading > * {
+  animation: fxUp 0.7s var(--fx-ease) both;
+  animation-delay: calc(var(--fx-delay, 0ms) + 120ms + var(--fx-i, 0) * 90ms);
+}
+
+/* build: Skills panels wipe in behind their wireframe */
+.fx-ready .fx-in-build {
+  animation: fxWipeIn 0.7s var(--fx-ease) both;
+}
+
+.fx-ready .fx-in-build .skill-logo {
   animation: fxPop 0.6s var(--fx-ease) both 0.25s;
 }
 
-.fx-ready .fx-unbuilding {
-  animation: fxBuildOut 0.45s cubic-bezier(0.55, 0, 0.75, 0.2) both;
+@keyframes fxUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: none; }
 }
 
-@keyframes fxBuildIn {
+@keyframes fxImgReveal {
+  from { clip-path: inset(100% 0 0 0); transform: scale(1.12); }
+  to   { clip-path: inset(0 0 0 0); transform: none; }
+}
+
+@keyframes fxCurtain {
+  from { clip-path: inset(0 0 100% 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes fxWipeIn {
   from { clip-path: inset(0 100% 0 0); }
   to   { clip-path: inset(0 0 0 0); }
 }
 
-@keyframes fxBuildOut {
-  from { clip-path: inset(0 0 0 0); opacity: 1; }
-  to   { clip-path: var(--fx-out, inset(0 0 0 100%)); opacity: 0.2; }
-}
-
-@keyframes fxImgIn {
-  from { transform: scale(1.18) translateX(-4%); filter: brightness(1.8) saturate(0.2); }
-  to   { transform: none; filter: none; }
-}
-
 @keyframes fxPop {
-  0%   { transform: scale(0.3); opacity: 0; }
-  70%  { transform: scale(1.12); opacity: 1; }
+  0%   { transform: scale(0.4); opacity: 0; }
+  70%  { transform: scale(1.08); opacity: 1; }
   100% { transform: none; }
 }
 
-/* Wireframe frames (positioned in document coordinates) */
+/* Wireframe frames for the Skills build (document coordinates) */
 .fx-frames {
   position: absolute;
   top: 0;
@@ -380,7 +391,7 @@ html.fx-intro-running body {
   position: absolute;
   inset: 0;
   background: var(--fx-blue-soft);
-  transition: opacity 0.45s ease 0.15s;
+  transition: opacity 0.45s ease 0.1s;
 }
 
 .fx-bframe.has-media .fx-bframe__fill {
@@ -389,14 +400,8 @@ html.fx-intro-running body {
     linear-gradient(135deg, #5b6677, #8693a7 55%, #4c5666);
 }
 
-.fx-bframe.is-filled .fx-bframe__fill,
-.fx-bframe.is-outline .fx-bframe__fill {
+.fx-bframe.is-filled .fx-bframe__fill {
   opacity: 0;
-}
-
-.fx-bframe.is-outline {
-  border-style: dashed;
-  border-color: rgba(47, 140, 255, 0.85);
 }
 
 .fx-bframe .fx-layer-name {
@@ -405,8 +410,7 @@ html.fx-intro-running body {
   text-overflow: ellipsis;
 }
 
-/* Cursor swarm */
-.fx-swarm {
+.fx-cursor-layer {
   position: fixed;
   inset: 0;
   z-index: 60;
@@ -414,18 +418,41 @@ html.fx-intro-running body {
   overflow: hidden;
 }
 
-.fx-swarm .fx-cursor {
+.fx-cursor-layer .fx-cursor {
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 
-.fx-swarm .fx-cursor.is-on {
+.fx-cursor-layer .fx-cursor.is-on {
   opacity: 1;
 }
 
-.fx-swarm .fx-cursor svg {
-  width: 15px;
-  height: 15px;
+/* --------------------------------------------------------------------------
+   Mouse spotlight on cards (desktop only)
+   -------------------------------------------------------------------------- */
+.fx-hover :is(.skill-panel, .contact-card, .work-card) {
+  position: relative;
+  isolation: isolate;
+}
+
+.fx-hover :is(.skill-panel, .contact-card, .work-card)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(
+    340px circle at var(--fx-mx, 50%) var(--fx-my, 50%),
+    rgba(229, 9, 20, 0.16),
+    transparent 65%
+  );
+}
+
+.fx-hover :is(.skill-panel, .contact-card, .work-card):hover::before {
+  opacity: 1;
 }
 
 /* Scroll progress bar (blue like the ruler) */
@@ -444,12 +471,12 @@ html.fx-intro-running body {
 
 @media (prefers-reduced-motion: reduce) {
   .fx-intro,
-  .fx-swarm,
-  .fx-frames {
+  .fx-frames,
+  .fx-cursor-layer {
     display: none !important;
   }
 
-  .fx-ready .fx-hidden,
+  .fx-ready .fx-pending,
   .fx-ready .intro-copy > *,
   .fx-ready .portrait-frame {
     opacity: 1 !important;
