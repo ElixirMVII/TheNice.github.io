@@ -14,6 +14,10 @@
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const finePointer = window.matchMedia("(hover: hover) and (min-width: 761px)").matches;
 
+  // Respect "reduce motion", and leave the page untouched in old in-app
+  // browsers that lack what the effects need.
+  if (reduceMotion || !("IntersectionObserver" in window) || !("MutationObserver" in window)) return;
+
   const CURSOR_PEOPLE = [
     { name: "Editor", color: "#e50914" },
     { name: "Director", color: "#2f8cff" },
@@ -402,7 +406,7 @@
     const r = node.getBoundingClientRect();
     const frame = addHandles(overlay(`fx-bframe${node.querySelector("img, .skill-logo") ? " has-media" : ""}`, r));
     frame.prepend(el("span", "fx-bframe__fill"));
-    label(frame, "fx-layer-name", (node.querySelector("h3")?.textContent || "Frame").trim());
+    label(frame, "fx-layer-name", ((node.querySelector("h3") || {}).textContent || "Frame").trim());
     label(frame, "fx-size", `${Math.round(r.width)} × ${Math.round(r.height)}`);
     requestAnimationFrame(() => frame.classList.add("is-drawn"));
     cursorTo("Editor", r.left - 4, r.top - 4, 260);
@@ -656,22 +660,28 @@
   /* ------------------------------------------------------------------------
      Boot
      ------------------------------------------------------------------------ */
-  if (reduceMotion) return;
-
-  root.classList.add("fx-ready");
-  document.body.append(frameLayer, cursorLayer);
-  registerReveals();
-  watchDynamicContent();
-  startSpotlight();
-  startProgressBar();
-
-  // Play the full intro once per browser session; afterwards just build the hero.
-  let seen = false;
   try {
-    seen = sessionStorage.getItem("fxIntroSeen") === "1";
-    sessionStorage.setItem("fxIntroSeen", "1");
+    root.classList.add("fx-ready");
+    document.body.append(frameLayer, cursorLayer);
+    registerReveals();
+    watchDynamicContent();
+    startSpotlight();
+    startProgressBar();
   } catch (error) {
-    seen = false;
+    // Never leave content hidden if something goes wrong
+    root.classList.remove("fx-ready");
+    document.querySelectorAll(".fx-pending").forEach((node) => node.classList.remove("fx-pending"));
+    return;
+  }
+
+  // Play the intro on every fresh visit (clicked link, typed URL, reload).
+  // Skip it only when coming back with Back/Forward or jumping to a #section.
+  let cameBack = false;
+  try {
+    const nav = performance.getEntriesByType("navigation")[0];
+    cameBack = !!nav && nav.type === "back_forward";
+  } catch (error) {
+    cameBack = false;
   }
 
   const begin = () => {
@@ -695,7 +705,7 @@
 
   // Cover the page right away, then give script.js a moment to render
   // published data so the wireframe frames match the real layout.
-  const introOverlay = seen || location.hash ? null : createIntroOverlay();
+  const introOverlay = cameBack || location.hash ? null : createIntroOverlay();
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => setTimeout(begin, 350), { once: true });
   } else {
