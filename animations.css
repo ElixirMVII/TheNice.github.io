@@ -1,0 +1,406 @@
+/* ==========================================================================
+   Animation layer — "design canvas" build-up intro, multiplayer cursors,
+   selection-box scroll reveals. Loaded after styles.css; safe to remove.
+   ========================================================================== */
+
+:root {
+  --fx-blue: #2f8cff;
+  --fx-blue-soft: rgba(47, 140, 255, 0.18);
+  --fx-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* While the intro plays, keep the page still */
+html.fx-intro-running,
+html.fx-intro-running body {
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   Intro overlay
+   -------------------------------------------------------------------------- */
+.fx-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  overflow: hidden;
+  pointer-events: auto;
+  cursor: pointer;
+  font-family: "Prompt", system-ui, sans-serif;
+}
+
+.fx-intro__bg {
+  position: absolute;
+  inset: 0;
+  background: #06070b;
+  transition: opacity 0.9s var(--fx-ease);
+}
+
+.fx-intro.is-canvas .fx-intro__bg {
+  opacity: 0.86;
+  background:
+    linear-gradient(rgba(47, 140, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(47, 140, 255, 0.06) 1px, transparent 1px),
+    #0a0d14;
+  background-size: 32px 32px, 32px 32px, auto;
+}
+
+.fx-intro.is-building .fx-intro__bg {
+  opacity: 0.35;
+}
+
+.fx-intro.is-done {
+  opacity: 0;
+  transition: opacity 0.7s var(--fx-ease);
+  pointer-events: none;
+}
+
+/* Rulers */
+.fx-ruler {
+  position: absolute;
+  background: #0f1a2b;
+  opacity: 0;
+  transition: transform 0.6s var(--fx-ease), opacity 0.4s;
+}
+
+.fx-ruler--top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 22px;
+  border-bottom: 2px solid var(--fx-blue);
+  transform: translateY(-100%);
+  background-image: repeating-linear-gradient(90deg, rgba(150, 190, 255, 0.55) 0 1px, transparent 1px 50px),
+    repeating-linear-gradient(90deg, rgba(150, 190, 255, 0.25) 0 1px, transparent 1px 10px);
+  background-size: 100% 100%, 100% 8px;
+  background-position: 0 0, 0 100%;
+  background-repeat: no-repeat;
+}
+
+.fx-ruler--left {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 22px;
+  border-right: 2px solid var(--fx-blue);
+  transform: translateX(-100%);
+  background-image: repeating-linear-gradient(180deg, rgba(150, 190, 255, 0.55) 0 1px, transparent 1px 50px),
+    repeating-linear-gradient(180deg, rgba(150, 190, 255, 0.25) 0 1px, transparent 1px 10px);
+  background-size: 100% 100%, 8px 100%;
+  background-position: 0 0, 100% 0;
+  background-repeat: no-repeat;
+}
+
+.fx-intro.is-canvas .fx-ruler {
+  opacity: 1;
+  transform: none;
+}
+
+.fx-intro.is-building .fx-ruler {
+  opacity: 0;
+}
+
+/* Guide lines */
+.fx-guide {
+  position: absolute;
+  background: rgba(47, 140, 255, 0.55);
+  transition: transform 0.7s var(--fx-ease), opacity 0.5s;
+}
+
+.fx-guide--h {
+  left: 0;
+  right: 0;
+  height: 1px;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.fx-guide--v {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: scaleY(0);
+  transform-origin: top;
+}
+
+.fx-guide.is-on {
+  transform: none;
+}
+
+.fx-intro.is-building .fx-guide {
+  opacity: 0;
+}
+
+/* Wireframe frames with selection handles */
+.fx-frame {
+  position: absolute;
+  border: 1.5px solid var(--fx-blue);
+  background: var(--fx-blue-soft);
+  opacity: 0;
+  transform: scale(0.6);
+  transform-origin: top left;
+  transition:
+    opacity 0.35s ease,
+    transform 0.55s var(--fx-ease),
+    left 0.5s var(--fx-ease),
+    top 0.5s var(--fx-ease),
+    width 0.5s var(--fx-ease),
+    height 0.5s var(--fx-ease),
+    background-color 0.5s ease,
+    border-color 0.5s ease;
+}
+
+.fx-frame.is-on {
+  opacity: 1;
+  transform: none;
+}
+
+.fx-frame--image {
+  background: linear-gradient(135deg, #5b6677, #8693a7 55%, #4c5666);
+}
+
+.fx-frame--accent {
+  border-color: var(--accent, #e50914);
+  background: rgba(229, 9, 20, 0.22);
+}
+
+.fx-intro.is-building .fx-frame {
+  background: transparent;
+  border-color: rgba(47, 140, 255, 0.9);
+}
+
+.fx-intro.is-done .fx-frame {
+  opacity: 0;
+}
+
+.fx-handle {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  background: #fff;
+  border: 1.5px solid var(--fx-blue);
+}
+
+.fx-handle:nth-child(1) { top: -4px; left: -4px; }
+.fx-handle:nth-child(2) { top: -4px; right: -4px; }
+.fx-handle:nth-child(3) { bottom: -4px; left: -4px; }
+.fx-handle:nth-child(4) { bottom: -4px; right: -4px; }
+
+.fx-size {
+  position: absolute;
+  left: 50%;
+  bottom: -24px;
+  transform: translateX(-50%);
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--fx-blue);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.fx-layer-name {
+  position: absolute;
+  left: -1px;
+  top: -20px;
+  color: var(--fx-blue);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Skip hint */
+.fx-skip {
+  position: absolute;
+  right: 20px;
+  bottom: 18px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------------------------------------
+   Cursors (used in intro + following the visitor's mouse)
+   -------------------------------------------------------------------------- */
+.fx-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.fx-cursor svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+}
+
+.fx-cursor__tag {
+  position: absolute;
+  left: 14px;
+  top: 16px;
+  padding: 1px 7px;
+  border-radius: 0 6px 6px 6px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 17px;
+  white-space: nowrap;
+}
+
+.fx-crowd {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.fx-crowd.is-on {
+  opacity: 1;
+}
+
+.fx-crowd .fx-cursor {
+  opacity: 0.9;
+}
+
+/* --------------------------------------------------------------------------
+   Hero build after the intro
+   -------------------------------------------------------------------------- */
+.fx-ready .intro-copy > *,
+.fx-ready .portrait-frame {
+  opacity: 0;
+}
+
+.fx-hero-in .intro-copy > * {
+  animation: fxRise 0.9s var(--fx-ease) both;
+  animation-delay: calc(var(--fx-i, 0) * 90ms);
+}
+
+.fx-hero-in .portrait-frame {
+  animation: fxWipe 1.1s var(--fx-ease) both 0.15s;
+}
+
+.fx-split-char {
+  display: inline-block;
+  white-space: pre;
+}
+
+.fx-hero-in .fx-split-char {
+  animation: fxCharUp 0.8s var(--fx-ease) both;
+  animation-delay: calc(0.12s + var(--fx-c, 0) * 32ms);
+}
+
+@keyframes fxRise {
+  from { opacity: 0; transform: translateY(28px); filter: blur(6px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+
+@keyframes fxCharUp {
+  from { opacity: 0; transform: translateY(0.6em) rotate(6deg); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes fxWipe {
+  from { opacity: 0; clip-path: inset(0 0 100% 0); transform: scale(1.06); }
+  to   { opacity: 1; clip-path: inset(0 0 0 0); transform: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Scroll reveal with a brief "selected" outline
+   -------------------------------------------------------------------------- */
+.fx-reveal {
+  opacity: 0;
+  transform: translateY(36px) scale(0.98);
+  filter: blur(10px);
+  transition:
+    opacity 0.8s var(--fx-ease),
+    transform 0.9s var(--fx-ease),
+    filter 0.9s var(--fx-ease);
+  transition-delay: var(--fx-delay, 0ms);
+}
+
+.fx-reveal.is-in {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+.fx-select {
+  position: relative;
+}
+
+.fx-select::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border: 1.5px solid var(--fx-blue);
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 3;
+}
+
+.fx-select.is-in::after {
+  animation: fxSelectFlash 1.4s ease both;
+  animation-delay: calc(var(--fx-delay, 0ms) + 0.15s);
+}
+
+@keyframes fxSelectFlash {
+  0%   { opacity: 0; transform: scale(1.04); }
+  20%  { opacity: 1; transform: none; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Images inside revealed blocks sharpen in */
+.fx-reveal img {
+  transition: filter 1.2s var(--fx-ease), transform 1.2s var(--fx-ease);
+}
+
+.fx-reveal:not(.is-in) img {
+  filter: blur(14px) saturate(0.4);
+  transform: scale(1.08);
+}
+
+/* Scroll progress bar (blue like the ruler) */
+.fx-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 70;
+  background: linear-gradient(90deg, var(--accent, #e50914), var(--fx-blue));
+  transform: scaleX(0);
+  transform-origin: left;
+  pointer-events: none;
+}
+
+@media (hover: none), (max-width: 760px) {
+  .fx-crowd {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-intro,
+  .fx-crowd {
+    display: none !important;
+  }
+
+  .fx-reveal,
+  .fx-reveal img,
+  .fx-ready .intro-copy > *,
+  .fx-ready .portrait-frame {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    clip-path: none !important;
+  }
+}
